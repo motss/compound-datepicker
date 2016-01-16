@@ -1,0 +1,884 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="compound-datepicker-icons.html">
+<link rel="import" href="datepicker-slide-from-left-animation.html">
+<link rel="import" href="datepicker-slide-from-right-animation.html">
+
+<link rel="import" href="../iron-selector/iron-selector.html">
+<link rel="import" href="../iron-list/iron-list.html">
+
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+
+<link rel="import" href="../neon-animation/neon-animated-pages.html">
+<link rel="import" href="../neon-animation/neon-animation-runner-behavior.html">
+<link rel="import" href="../neon-animation/animations/fade-in-animation.html">
+<link rel="import" href="../neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../neon-animation/animations/slide-from-left-animation.html">
+<link rel="import" href="../neon-animation/animations/slide-from-right-animation.html">
+
+<!--
+An element providing a solution to no problem in particular.
+
+Example:
+
+    <compound-datepicker></compound-datepicker>
+
+Example:
+
+    <compound-datepicker>
+      <h2>Hello compound-datepicker</h2>
+    </compound-datepicker>
+
+@demo demo/index.html
+@hero hero.svg
+-->
+<!--
+device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav   dow    dow   cal    cal cal
+  name  width height width height  pad pad  h    h width height sep width height width height width height sep
+   IP5    320    568   300    300   16   8 35   35   300     84   8   300    x36   300    x24   300    220   8
+   IP6    375    667   330    340   24  12 36   36   330     96  12   330     36   330     32   330    244  16
+  IP6+    414    736   330    340   24  12 xx   xx   330     96  12   330     36   330     32   330    244  16
+    N5    360    640   330    340   24  12 xx   xx   330     96  12   330     36   330     32   330    244  16
+   N5X    411    731   330    340   24  12 xx   xx   330     96  12   330     36   330     32   330    244  16
+   N6P    435    773   330    340   24  12 xx   xx   330     96  12   330     36   330     32   330    244  16
+    N7    600    960   330    340   24  12 xx   xx   330     96  12   330     36   330     32   330    244  16
+   N10    800   1280   330    340   24  12 xx   xx   330     96  12   330     36   330     32   330    244  16
+-->
+<dom-module id="compound-datepicker">
+  <template strip-whitespace>
+    <style>
+      :root {
+        --compound-datepicker-default-height: calc(300px + 84px);
+      }
+
+      :host {
+        user-select: none;
+        box-sizing: border-box;
+
+        display: block;
+      }
+
+      *, *::before, *::after {
+        box-sizing: inherit;
+      }
+
+      div.datepicker {
+        width: 300px;
+        height: var(--compound-datepicker-height, --compound-datepicker-default-height);
+        max-height: calc(300px + 84px + 57px);
+        @apply(--layout-vertical);
+      }
+
+      iron-selector.selected-fulldate {
+        min-height: 84px;
+        padding: 8px 24px;
+        color: var(--compound-datepicker-selection-view-text-color, #b2dfdb);
+        background-color: var(--compound-datepicker-selection-view-bg, #009688);
+        @apply(--layout-vertical);
+      }
+      div.selected-year.iron-selected,
+      div.selected-date.iron-selected {
+        /*color: #009688;*/
+        color: var(--compound-datepicker-selected-view-color, #fefefe);
+      }
+      div.selected-year {
+        /*font-size: 12px;*/
+        /*background-color: #fafafa;*/
+        font-size: 14px;
+        font-weight: 800;
+        height: 34px;
+        cursor: pointer;
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+      }
+      div.selected-date {
+        /*background-color: #e0e0e0;*/
+        /*font-size: 24px;*/
+        font-size: 32px;
+        font-weight: 800;
+        height: 34px;
+        cursor: pointer;
+        @apply(--layout-horizontal);
+        @apply(--layout-center);
+      }
+
+      neon-animated-pages.fullcalendar {
+        /*height: calc(300px + 57px);*/
+        /*background-color: #e0e0e0;*/
+        width: 100%;
+        height: 100%;
+        overflow-x: hidden;
+        color: var(--compound-datepicker-fullcalendar-text-color, #000);
+        background-color: var(--compound-datepicker-fullcalendar-bg, #fafafa);
+        @apply(--layout-vertical);
+      }
+      div.navigator {
+        max-height: 46px;
+        padding: 3px 10px;
+        position: relative;
+        margin-top: 8px;
+        @apply(--layout-horizontal);
+        @apply(--layout-center-center);
+      }
+      div.nav-month-year {
+        /*font-size: 12px;*/
+        font-size: 14px;
+        font-weight: 500;
+        text-align: center;
+        @apply(--layout-flex-auto);
+      }
+      div.days-of-week {
+        /*background-color: #f5f5f5;*/
+        color: var(--compound-datepicker-day-name-color, #9b9b9b);
+        @apply(--layout-horizontal);
+        @apply(--layout-center-center);
+      }
+      div.each-days-of-week {
+        font-size: 10px;
+        padding: 13px;
+        max-height: 36px;
+        width: 41px;
+        @apply(--layout-horizontal);
+        @apply(--layout-center-center);
+      }
+      div.days-of-month {
+        /*padding-bottom: 8px;*/
+        @apply(--layout-horizontal);
+        @apply(--layout-wrap);
+        @apply(--layout-center-justified);
+      }
+      div.each-days-of-month {
+        font-size: 10px;
+        height: 35px;
+        width: 35px;
+        margin-left: 3px;
+        margin-right: 3px;
+        position: relative;
+        @apply(--layout-horizontal);
+        @apply(--layout-center-center);
+      }
+      div > div.days-of-month > div.each-days-of-month.chosen-days-of-month {
+        border-radius: 50%;
+        background-color: var(--compound-datepicker-selected-day-bg, #009688);
+        color: var(--compound-datepicker-selected-day-color, #fff);
+      }
+      div.days-of-month > div.each-days-of-month.is-today {
+        color: var(--compound-datepicker-today-color, #009688);
+      }
+      div.days-of-month > .each-days-of-month.is-disabled-day {
+        color: var(--compound-datepicker-disabled-day-color, #9e9e9e);
+      }
+      div.each-days-of-month:not(.is-non-selectable) {
+        cursor: pointer;
+      }
+
+      div.each-list-of-years {
+        height: 64px;
+        cursor: pointer;
+        @apply(--layout-horizontal);
+        @apply(--layout-center-center);
+      }
+      div.each-list-of-years.is-selected {
+        background-color: var(--compound-datepicker-selected-year-bg, #f5f5f5);
+        color: var(--compound-datepicker-selected-year-color, #009688);
+        font-weight: 800;
+      }
+
+      /* paper-icon-button */
+      paper-icon-button {
+        color: var(--compound-datepicker-icon-button-color, #737373);
+        --paper-icon-button-ink-color: var(--compound-datepicker-icon-button-ink-color, #737373);
+      }
+
+      /* content tag selector */
+      div.calendar-view > ::content > div.buttons {
+        color: var(--compound-datepicker-button-color, #009688);
+        position: relative;
+        padding: 8px 8px 8px 24px;
+        margin: 0;
+        @apply(--layout-horizontal);
+        @apply(--layout-end-justified);
+      }
+
+      /* landscape */
+      @media all and (orientation: landscape) {
+        div.datepicker {
+          width: 512px;
+          height: 288px !important;
+          @apply(--layout-horizontal);
+        }
+
+        iron-selector.selected-fulldate {
+          width: calc(100% / 3 + 48px);
+          height: 100%;
+        }
+        div.selected-date {
+          height: 68px;
+          @apply(--layout-vertical);
+          @apply(--layout-start);
+          @apply(--layout-center-justified);
+        }
+
+        neon-animated-pages.fullcalendar {
+          height: 100%;
+        }
+        div.calendar-view {
+          padding-bottom: 0;
+        }
+        div.navigator {
+          padding: 2px 10px;
+          margin-top: 0;
+        }
+        div.days-of-week {
+          padding: 0 3px;
+        }
+        div.each-days-of-week {
+          width: calc(100% / 7 - 20px);
+          padding: 0;
+          margin-left: 10px;
+          margin-right: 10px;
+        }
+        div.days-of-month {
+          padding: 0 3px;
+        }
+        div.each-days-of-month {
+          height: 29px;
+          margin-left: 10px;
+          margin-right: 10px;
+          width: calc(100% / 7 - 20px);
+        }
+      }
+    </style>
+
+    <div class="datepicker">
+      <iron-selector selected="{{_activeView}}" class="selected-fulldate" attr-for-selected="view">
+        <div class="selected-year" view="year">
+          [[_selectedYear]]
+        </div>
+        <div class="selected-date" view="calendar">
+          [[_selectedDaysOfWeek]],&nbsp;
+          <span>[[_computeShortMonthName(_selectedMonth)]] [[_selectedDate]]</span>
+        </div>
+      </iron-selector>
+
+      <neon-animated-pages class="fullcalendar" selected="[[_activeView]]" attr-for-selected="view" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+        <div class="calendar-view" view="calendar">
+          <div class="navigator">
+            <paper-icon-button icon="datepicker:chevron-left" on-transitionend="_decrementMonth" on-tap="_setUpdateMonth" action="decrement"></paper-icon-button>
+            <div id="navMonthYear" class="nav-month-year">
+              [[_computeMonthName(_activeMonth)]] [[_activeYear]]
+            </div>
+            <paper-icon-button icon="datepicker:chevron-right" on-transitionend="_incrementMonth" on-tap="_setUpdateMonth" action="increment"></paper-icon-button>
+          </div>
+
+          <div id="daysOfWeek" class="days-of-week">
+            <template is="dom-repeat" items="[[_daysOfWeek]]" index-as="index" strip-whitespace>
+              <div class="each-days-of-week">
+                [[item]]
+              </div>
+            </template>
+          </div>
+
+          <div id="daysOfMonth" class="days-of-month" on-tap="_chooseDaysOfMonth">
+            <template is="dom-repeat" items="[[_daysOfMonth]]" index-as="index" strip-whitespace>
+              <div class$="each-days-of-month[[_isToday(item, _activeYear, _activeMonth)]][[_isEmptyDate(item)]][[_isChosenDaysOfMonth(item)]][[_isDisableDays(index, disableDays.*, minDate, maxDate, item)]]" index="[[index]]" date="[[item]]">
+                [[item]]
+              </div>
+            </template>
+          </div>
+
+          <content select=".buttons"></content>
+        </div>
+
+        <iron-list id="listOfYears" items="[[_listOfYears]]" view="year" selection-enabled selected-item="{{_chosenListOfYears}}">
+          <template strip-whitespace>
+            <div class$="each-list-of-years[[_isListOfYearsSelected(selected)]]">
+              [[item.year]]
+            </div>
+          </template>
+        </iron-list>
+      </neon-animated-pages>
+
+    </div>
+  </template>
+
+  <script>
+    var _monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    var _dayNames = [
+      'Sunday', 'Monday', 'Tuesday', 'Wednesday',
+      'Thursday', 'Friday', 'Saturday'
+    ];
+
+    Polymer({
+      is: 'compound-datepicker',
+
+      hostAttributes: {
+        role: 'datepicker',
+      },
+
+      behaviors: [
+        Polymer.NeonAnimationRunnerBehavior
+      ],
+
+      properties: {
+        firstDayOfWeek: {
+          type: Number,
+          value: 0
+        },
+        disableDays: {
+          type: Array,
+          value: function() {
+            return [0, 6, 4];
+          }
+        },
+        minDate: {
+          type: String,
+          value: '1000-00-01'
+        },
+        maxDate: {
+          type: String,
+          value: '9999-99-99'
+        },
+        format: {
+          type: String,
+          value: 'yyyy-mm-dd'
+        },
+        date: {
+          type: String,
+          value: function() {
+            // TODO: showLongDate.
+            var _now = new Date();
+            return [_now.getFullYear(), ('0' + _now.getMonth() + 1).slice(-2),
+            _now.getDate()].join('-');
+          },
+          notify: true
+        },
+        showLongDate: {
+          type: Boolean,
+          value: false
+        },
+
+        _daysOfWeek: {
+          type: Array,
+          value: function() {
+            return ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          },
+          computed: '_computeDaysOfWeek(firstDayOfWeek)'
+        },
+        _daysOfMonth: {
+          type: Array,
+          value: function() {
+            return [1,2,3,4,5];
+          }
+        },
+        _listOfYears: {
+          type: Array,
+          value: function() {
+            for (var _listOfYears = [], y = 1900,
+              i = y; i <= 2100; i++) {
+              _listOfYears.push({
+                year: i
+              });
+            }
+            return _listOfYears;
+          }
+        },
+
+        _activeView: {
+          type: String,
+          value: 'calendar'
+        },
+        _activeYear: {
+          type: Number,
+          value: function() {
+            return new Date().getFullYear();
+          }
+        },
+        _activeMonth: {
+          type: Number,
+          value: function() {
+            return new Date().getMonth();
+          }
+        },
+        _isIncrementMonth: {
+          type: Boolean,
+          value: false
+        },
+        _isDecrementMonth: {
+          type: Boolean,
+          value: false
+        },
+
+        _selectedYear: {
+          type: Number,
+          value: new Date().getFullYear()
+        },
+        _selectedMonth: {
+          type: Number,
+          value: new Date().getMonth()
+        },
+        _selectedDate: {
+          type: Number,
+          value: new Date().getDate()
+        },
+        _selectedDaysOfWeek: {
+          type: String,
+          value: function() {
+            var _daysOfWeek = new Date().getDay();
+            if (_daysOfWeek < 0) {
+              _daysOfWeek = 6;
+            }
+            return _dayNames[_daysOfWeek].slice(0, 3);
+          }
+        },
+        _chosenListOfYears: {
+          type: Object,
+          observer: '_chosenListOfYearsChanged'
+        },
+        _chosenDaysOfMonth: {
+          type: Number,
+          value: 99
+        },
+
+        _isListUpdated: {
+          type: Boolean,
+          value: false
+        },
+
+        _isSelectedDateConfirmed: {
+          type: Boolean,
+          value: false
+        },
+        _format: {
+          type: Object,
+          value: function() {
+            return {y: 'yyyy', m: 'mm', d: 'dd', s1: '-', s2: '-'};
+          }
+        },
+
+      },
+
+      observers: [
+        '_computeDaysOfMonth(_activeYear, _activeMonth, firstDayOfWeek)',
+        '_updateList(_activeView)',
+        '_computeSeparateFormat(format)'
+      ],
+
+      // Element Lifecycle
+
+      ready: function() {
+        // `ready` is called after all elements have been configured, but
+        // propagates bottom-up. This element's children are ready, but parents
+        // are not.
+        //
+        // This is the point where you should make modifications to the DOM (when
+        // necessary), or kick off any processes the element wants to perform.
+        console.log('レディー');
+      },
+
+      attached: function() {
+        // `attached` fires once the element and its parents have been inserted
+        // into a document.
+        //
+        // This is a good place to perform any work related to your element's
+        // visual state or active behavior (measuring sizes, beginning animations,
+        // loading resources, etc).
+        this.set('animationConfig', {
+          'incrementEntry': [
+            {
+              name: 'slide-from-right-animation',
+              node: this.$.daysOfWeek
+            },
+            {
+              name: 'slide-from-right-animation',
+              node: this.$.daysOfMonth
+            },
+            {
+              name: 'datepicker-slide-from-right-animation',
+              node: this.$.navMonthYear
+            }
+          ],
+          'decrementEntry': [
+            {
+              name: 'slide-from-left-animation',
+              node: this.$.daysOfWeek
+            },
+            {
+              name: 'slide-from-left-animation',
+              node: this.$.daysOfMonth
+            },
+            {
+              name: 'datepicker-slide-from-left-animation',
+              node: this.$.navMonthYear
+            }
+          ]
+        });
+        // setup iron-list.
+        this.$.listOfYears.selectItem(new Date().getFullYear() - 1900);
+        // setup distributed children.
+        var _content = this.getEffectiveChildren();
+        var _paperButtons = Polymer.dom(_content[0]).querySelectorAll('paper-button');
+        if (_content[0] && _paperButtons.length > 0) {
+          for (var i = 0; i < _paperButtons.length; i++) {
+            // addEventListener to paper-button with dialog-confirm.
+            if (_paperButtons[i].hasAttribute('dialog-confirm')) {
+              // attach event handler which first binded to this scope.
+              _paperButtons[i].addEventListener('tap', this._confirmSelectedDate.bind(this));
+              _paperButtons[i].addEventListener('transitionend', this.updateBindDate.bind(this));
+            }
+          }
+          // update to a new height for datepicker if paper-buttons present.
+          console.log('update-styles', _paperButtons);
+          this.updateStyles({
+            '--compound-datepicker-height': (300 + 84 + 57) + 'px'
+          });
+        }else {
+
+        }
+        console.log('アタッチ');
+      },
+
+      detached: function() {
+        // The analog to `attached`, `detached` fires when the element has been
+        // removed from a document.
+        //
+        // Use this to clean up anything you did in `attached`.
+      },
+
+      // Element Behavior
+
+      //  Month Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
+      //  Days   31  28  31  30  31  30  31  31  30  31  30  31
+      //   31?    0       2       4       6   7       9      11
+      //   30?                3       5           8      10
+      //  Feb?        1
+      //  Su Mo Tu We Th Fr Sa startDay + _firstDayOfWeek
+      //                  1  2        5 - 0 < 0 ? 6 : 5 - 0;
+      //  Mo Tu We Th Fr Sa Su
+      //               1  2  3        5 - 1 < 0 ? 6 : 5 - 1;
+      //  Tu We Th Fr Sa Su Mo
+      //            1  2  3  4        5 - 2 < 0 ? 6 : 5 - 2;
+      //  We Th Fr Sa Su Mo Tu
+      //         1  2  3  4  5        5 - 3 < 0 ? 6 : 5 - 3;
+      //  Th Fr Sa Su Mo Tu We
+      //      1  2  3  4  5  6        5 - 4 < 0 ? 6 : 5 - 4;
+      //  Fr Sa Su Mo Tu We Th
+      //   1  2  3  4  5  6  7        5 - 5 < 0 ? 6 : 5 - 5;
+      //  Sa Su Mo Tu We Th Fr
+      //                     1        5 - 6 < 0 ? 6 : 5 - 6;
+      _computeDaysOfMonth: function(_activeYear, _activeMonth, _firstDayOfWeek) {
+        function _computeTotalDaysOfMonth(_year, _month) {
+            var _totalDaysOfMonth = 31;
+            if (_month === 1) {
+              _totalDaysOfMonth = new Date(_year, 1, 29) .getMonth() === 1 ? 29 : 28;
+            }else if (_month === 3 || _month === 5 ||
+              _month === 8 || _month === 10) {
+              _totalDaysOfMonth = 30;
+            }
+            return _totalDaysOfMonth;
+        }
+
+        // var _now = new Date();
+        var _start = new Date(_activeYear, _activeMonth, 1).getDay();
+        var _daysOfMonth = [];
+        var _totalDays = _computeTotalDaysOfMonth(_activeYear, _activeMonth);
+
+        //  if _firstDayOfWeek is greater than 0 but less than 7.
+        if (_firstDayOfWeek > 0 && _firstDayOfWeek < 7) {
+          _start = _start - _firstDayOfWeek;
+          _start = _start < 0 ? 7  + _start : _start;
+        }
+
+        for (var i = 0, j = 1 - _start; i < 42; i++, j++) {
+          _daysOfMonth.push((i >= _start & i < _start + _totalDays ? j : ''));
+        }
+        // update _chosenDaysOfMonth for every new calendar being rendered.
+        this.set('_chosenDaysOfMonth', this._computeChosenDaysOfMonth(_daysOfMonth));
+
+        // return _daysOfMonth;
+        this.set('_daysOfMonth', _daysOfMonth);
+      },
+      _setUpdateMonth: function(ev) {
+        var _target = ev.target;
+        while (_target && _target.tagName !== 'PAPER-ICON-BUTTON') {
+          _target = _target.parentElement;
+        }
+        // separate ready flag for increment and decrement due to focus.
+        // on-transitionend on previous focused paper-icon-button will trigger
+        // the previous function to be executed instead of the current one.
+        if (_target && _target.hasAttribute('action')) {
+          if (_target.getAttribute('action') === 'increment') {
+            this.set('_isIncrementMonth', true);
+          }else {
+            this.set('_isDecrementMonth', true);
+          }
+        }
+      },
+      _incrementMonth: function() {
+        if (this._isIncrementMonth) {
+          var _month = this._activeMonth;
+          if (++_month > 11) {
+            this._activeYear++;
+          }
+          this.set('_activeMonth', _month > 11 ? 0 : _month);
+          this.cancelAnimation();
+          this.playAnimation('incrementEntry');
+          this.set('_isIncrementMonth', false);
+        }
+      },
+      _decrementMonth: function() {
+        if (this._isDecrementMonth) {
+          var _month = this._activeMonth;
+          if (--_month < 0) {
+            this._activeYear--;
+          }
+          this.set('_activeMonth', _month < 0 ? 11 : _month);
+          this.cancelAnimation();
+          this.playAnimation('decrementEntry');
+          this.set('_isDecrementMonth', false);
+        }
+      },
+      _computeMonthName: function(_activeMonth) {
+        return _monthNames[_activeMonth];
+      },
+      _computeShortMonthName: function(_selectedMonth) {
+        return _monthNames[_selectedMonth].slice(0, 3);
+      },
+      _chooseDaysOfMonth: function(ev) {
+        var _target = ev.target;
+        // daysOfMonth is chooseable when:
+        // a) _target.date is of type Number,
+        // b) _target.classList.contains('is-disabled-day').
+        if (_target && _.isNumber(_target.date) &&
+          !_target.classList.contains('is-disabled-day')) {
+          if (this._chosenDaysOfMonth !== 99) {
+            var _node = Polymer.dom(this.$.daysOfMonth).querySelectorAll('div');
+            this.toggleClass('chosen-days-of-month', false,
+              _node[this._chosenDaysOfMonth]);
+          }
+          this.toggleClass('chosen-days-of-month', true, _target);
+          this.set('_chosenDaysOfMonth', _target.index);
+
+          this.set('_selectedDate', _target.date);
+          this.set('_selectedYear', this._activeYear);
+          this.set('_selectedMonth', this._activeMonth);
+          this.set('_selectedDaysOfWeek', this._computeShortDayName(_target.index % 7));
+        }
+      },
+      _computeShortDayName: function(_index) {
+        return _dayNames[_index].slice(0, 3);
+      },
+
+      _isToday: function(_item, _activeYear, _activeMonth) {
+        var _now = new Date();
+        if (_item === _now.getDate() &&
+          _activeYear === _now.getFullYear() &&
+          _activeMonth === _now.getMonth()) {
+          return ' is-today';
+        }
+        return '';
+      },
+      _isEmptyDate: function(_item) {
+        if (_.isNumber(_item)) {
+          return '';
+        }
+        return ' is-non-selectable';
+      },
+      _isChosenDaysOfMonth: function(_item) {
+        // able to retain selected daysOfMonth even after navigating to other months.
+        if (this._chosenDaysOfMonth !== 99 && this._activeYear === this._selectedYear &&
+            this._activeMonth === this._selectedMonth &&
+            _item === this._selectedDate) {
+          return ' chosen-days-of-month';
+        }
+        return '';
+      },
+      _isDisableDays: function(_index, _disableDays, _minDate, _maxDate, _item) {
+        // _index % 7 gives values from 0 to 6.
+        // and if _index matches some of these disableDays values return true.
+        var _isDisabledDays = this.disableDays.some(function(_n) {
+          return _n === _index % 7;
+        });
+        var _isLessThanMinDate;
+        var _isMoreThanMaxDate;
+        // ------ < _minDate ---------------- _maxDate > ------
+        // if _item is of type Number.
+        // if converted _item into new Date() < minDate or > maxDate.
+        if (_.isNumber(_item)) {
+          var _minDateObj = this._computeMinDate(_minDate);
+          var _maxDateObj = this._computeMaxDate(_maxDate);
+          // proceed to limit dates when _minDateObj, _maxDateObj is not undefined.
+          if (!_.isUndefined(_minDateObj) && !_.isUndefined(_maxDateObj)) {
+            var _currentDate = new Date(this._activeYear, this._activeMonth, _item);
+            _isLessThanMinDate = _currentDate < new Date(_minDateObj.year,
+              _minDateObj.month - 1, _minDateObj.date);
+            _isMoreThanMaxDate = _currentDate > new Date(_maxDateObj.year,
+              _maxDateObj.month - 1, _maxDateObj.date);
+          }
+        }
+        if (_isDisabledDays || _isLessThanMinDate || _isMoreThanMaxDate) {
+          return ' is-disabled-day';
+        }
+        return '';
+      },
+
+      _chooseListOfYears: function(_year) {
+        // ev.model (1968)
+        // index: 2
+        // item.year: 1968
+        // selected: false
+
+        // if none is selected is the listOfYears, reset to old value (_activeYear).
+        if (_.isNull(_year) || _.isEmpty(_year)) {
+          // reset unselected listOfYears to _activeYear;
+          this.$.listOfYears.selectItem(this._activeYear - 1900);
+          // notifyResize iron-list after selectItem function.
+          this.async(function() {
+            this.$.listOfYears.notifyResize();
+          });
+          return;
+        }
+
+        this.set('_selectedYear', _year.year);
+        this.set('_activeYear', _year.year);
+      },
+      _isListOfYearsSelected: function(_selected) {
+        if (_selected) {
+          return ' is-selected'
+        }
+        return '';
+      },
+      _chosenListOfYearsChanged: function(_new, _old) {
+        // whenever _chosenListOfYears changes in value, pass the selection.
+        this._chooseListOfYears(_new);
+        // return to calendar after selection/ selection changed.
+        if (this._activeView === 'year') {
+          this.set('_activeView', 'calendar');
+        }
+      },
+
+      _computeDaysOfWeek: function(_firstDayOfWeek) {
+        // _daysOfWeek needs to be changed as well with firstDayOfWeek.
+        if (_firstDayOfWeek > 0 && _firstDayOfWeek < 7) {
+          var _dow = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          var _spliced = _dow.splice(_firstDayOfWeek);
+          _spliced.push(_dow);
+          return _.flatten(_spliced);
+        }
+        return ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      },
+      _computeChosenDaysOfMonth: function(_daysOfMonth) {
+        // depends on _daysOfMonth and recalculate the index of _chosenDaysOfMonth.
+        var _newDaysOfMonthIdx = _daysOfMonth.indexOf(this._selectedDate);
+        if (_newDaysOfMonthIdx > 0) {
+          return _newDaysOfMonthIdx;
+        }
+      },
+
+      _computeMinDate: function(_minDate) {
+        var re = /(\d{4})[^a-zA-Z0-9]+(\d{2})[^a-zA-Z0-9]+(\d{2})/i;
+        var m = re.exec(_minDate);
+        if (m !== null) {
+          return {year: parseInt(m[1]), month: parseInt(m[2]),
+            date: parseInt(m[3])};
+        }
+      },
+      _computeMaxDate: function(_maxDate) {
+        var re = /(\d{4})[^a-zA-Z0-9]+(\d{2})[^a-zA-Z0-9]+(\d{2})/i;
+        var m = re.exec(_maxDate);
+        if (m !== null) {
+          return {year: parseInt(m[1]), month: parseInt(m[2]),
+            date: parseInt(m[3])};
+        }
+      },
+
+      // when _activeView is year, scrollToIndex and notifyResize iron-list.
+      // workaround to always center selected year and...
+      // to fix duplicated items when first switching to year view.
+      _updateList: function(_activeView) {
+        if (_activeView === 'year') {
+          if (!this._isListUpdated) {
+            this.$.listOfYears.scrollToIndex(this._activeYear - 1900);
+            this.$.listOfYears.notifyResize();
+            this.set('_isListUpdated', true);
+          }else {
+            this.$.listOfYears.scrollToIndex(this._activeYear - 1900 - 2);
+            this.$.listOfYears.notifyResize();
+          }
+        }
+      },
+
+      // split capturing group of format into year, month and date.
+      _computeSeparateFormat: function(_format) {
+        var re = /(yyyy|yy)[^a-zA-Z0-9]+(mmmm|mmm|mm|m)[^a-zA-Z0-9]+(do|dd|d)/i;
+        var sym = /\w+([^a-zA-Z0-9]+)\w+([^a-zA-Z0-9]+)\w+/i;
+        var m = re.exec(_format);
+        var n = sym.exec(_format);
+        if (m !== null && n !== null) {
+          this.set('_format.y', m[1]);
+          this.set('_format.m', m[2]);
+          this.set('_format.d', m[3]);
+          this.set('_format.s1', n[1]);
+          this.set('_format.s2', n[2]);
+        }
+      },
+
+      _bindSelectedFulldate: function(_selectedYear, _selectedMonth, _selectedDate, _format) {
+        var _formattedYear  = _selectedYear;
+        var _formattedMonth  = _monthNames[_selectedMonth];
+        var _formattedDate  = _selectedDate;
+        var _finalFormatted = '';
+
+        // compute new formatted year.
+        if (_format.y === 'yy') {
+          _formattedYear = _selectedYear%100;
+        }
+        // compute new formatted month.
+        if (_format.m === 'mmm') {
+          _formattedMonth = _formattedMonth.slice(0, 3);
+        }else if (_format.m === 'mm') {
+          _formattedMonth = ('0' + (_selectedMonth + 1)).slice(-2);
+        }else if (_format.m === 'm') {
+          _formattedMonth = _selectedMonth + 1;
+        }
+        // compute new formatted date.
+        if (_format.d === 'do') {
+          var _cardinalNumber = _formattedDate%10;
+          var _suffixOrdinal = _cardinalNumber > 3 ? 'th' :
+            ['th', 'st', 'nd', 'rd'][_cardinalNumber];
+          if (_formattedDate === 11 || _formattedDate == 12 || _formattedDate === 13) {
+            _suffixOrdinal = 'th';
+          }
+          _formattedDate = _formattedDate + _suffixOrdinal;
+        }else if (_format.d === 'dd') {
+          _formattedDate = ('0' + _formattedDate).slice(-2);
+        }
+        // set formatted value with user defined symbols.
+        _finalFormatted = [_formattedYear, _format.s1, _formattedMonth,
+          _format.s2, _formattedDate].join('');
+        // TODO: showLongDate.
+        if (this.showLongDate) {
+          // var _dayNumber = new Date(_selectedYear, _selectedMonth, _selectedDate).getDay();
+          // _finalFormatted = _dayNames[_dayNumber].slice(0, 3) + ', ' + _finalFormatted;
+        }
+        this.set('date', _finalFormatted);
+      },
+      // functions for content tag.
+      _confirmSelectedDate: function(ev) {
+        if (!this._isSelectedDateConfirmed) {
+          this.set('_isSelectedDateConfirmed', true);
+        }
+      },
+      updateBindDate: function(ev) {
+        if (this._isSelectedDateConfirmed) {
+          this._bindSelectedFulldate(this._selectedYear, this._selectedMonth,
+            this._selectedDate, this._format);
+          this.set('_isSelectedDateConfirmed', false);
+        }
+      },
+
+    });
+  </script>
+</dom-module>
