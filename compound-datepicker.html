@@ -14,7 +14,6 @@
 <link rel="import" href="../neon-animation/animations/fade-out-animation.html">
 <link rel="import" href="../neon-animation/animations/slide-from-left-animation.html">
 <link rel="import" href="../neon-animation/animations/slide-from-right-animation.html">
-
 <!--
 An element providing a solution to no problem in particular.
 
@@ -77,12 +76,9 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
       }
       div.selected-year.iron-selected,
       div.selected-date.iron-selected {
-        /*color: #009688;*/
         color: var(--compound-datepicker-selected-view-color, #fefefe);
       }
       div.selected-year {
-        /*font-size: 12px;*/
-        /*background-color: #fafafa;*/
         font-size: 14px;
         font-weight: 800;
         height: 34px;
@@ -91,8 +87,6 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
         @apply(--layout-center);
       }
       div.selected-date {
-        /*background-color: #e0e0e0;*/
-        /*font-size: 24px;*/
         font-size: 32px;
         font-weight: 800;
         height: 34px;
@@ -102,8 +96,6 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
       }
 
       neon-animated-pages.fullcalendar {
-        /*height: calc(300px + 57px);*/
-        /*background-color: #e0e0e0;*/
         width: 100%;
         height: 100%;
         overflow-x: hidden;
@@ -120,14 +112,12 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
         @apply(--layout-center-center);
       }
       div.nav-month-year {
-        /*font-size: 12px;*/
         font-size: 14px;
         font-weight: 500;
         text-align: center;
         @apply(--layout-flex-auto);
       }
       div.days-of-week {
-        /*background-color: #f5f5f5;*/
         color: var(--compound-datepicker-day-name-color, #9b9b9b);
         @apply(--layout-horizontal);
         @apply(--layout-center-center);
@@ -348,7 +338,6 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
         date: {
           type: String,
           value: function() {
-            // TODO: showLongDate.
             var _now = new Date();
             return [_now.getFullYear(), ('0' + _now.getMonth() + 1).slice(-2),
             _now.getDate()].join('-');
@@ -463,7 +452,8 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
       observers: [
         '_computeDaysOfMonth(_activeYear, _activeMonth, firstDayOfWeek)',
         '_updateList(_activeView)',
-        '_computeSeparateFormat(format)'
+        '_computeSeparateFormat(format)',
+        '_computeShowLongDate(showLongDate)'
       ],
 
       // Element Lifecycle
@@ -475,7 +465,6 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
         //
         // This is the point where you should make modifications to the DOM (when
         // necessary), or kick off any processes the element wants to perform.
-        console.log('レディー');
       },
 
       attached: function() {
@@ -520,6 +509,8 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
         // setup distributed children.
         var _content = this.getEffectiveChildren();
         var _paperButtons = Polymer.dom(_content[0]).querySelectorAll('paper-button');
+        // workaround to check for _content[0] as paper-button outside of
+        // this element will be queried as well even though outside of content tag.
         if (_content[0] && _paperButtons.length > 0) {
           for (var i = 0; i < _paperButtons.length; i++) {
             // addEventListener to paper-button with dialog-confirm.
@@ -530,14 +521,12 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
             }
           }
           // update to a new height for datepicker if paper-buttons present.
-          console.log('update-styles', _paperButtons);
           this.updateStyles({
             '--compound-datepicker-height': (300 + 84 + 57) + 'px'
           });
         }else {
 
         }
-        console.log('アタッチ');
       },
 
       detached: function() {
@@ -709,15 +698,22 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
         if (_.isNumber(_item)) {
           var _minDateObj = this._computeMinDate(_minDate);
           var _maxDateObj = this._computeMaxDate(_maxDate);
-          // proceed to limit dates when _minDateObj, _maxDateObj is not undefined.
-          if (!_.isUndefined(_minDateObj) && !_.isUndefined(_maxDateObj)) {
-            var _currentDate = new Date(this._activeYear, this._activeMonth, _item);
+          var _currentDate = new Date(this._activeYear, this._activeMonth, _item);
+          // run two different obj differently just in case only one of them
+          // is defined and still be able to update disabled days.
+          if (!_.isUndefined(_minDateObj)) {
             _isLessThanMinDate = _currentDate < new Date(_minDateObj.year,
               _minDateObj.month - 1, _minDateObj.date);
+          }
+          if (!_.isUndefined(_maxDateObj)) {
             _isMoreThanMaxDate = _currentDate > new Date(_maxDateObj.year,
               _maxDateObj.month - 1, _maxDateObj.date);
           }
         }
+        // To disable a date, it must be either one of the followings:
+        // a) _isDisabledDays (set by property disableDays),
+        // b) _isLessThanMinDate (set by property minDate), and
+        // c) _isMoreThanMaxDate (set by propery moreDate).
         if (_isDisabledDays || _isLessThanMinDate || _isMoreThanMaxDate) {
           return ' is-disabled-day';
         }
@@ -858,10 +854,10 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
         // set formatted value with user defined symbols.
         _finalFormatted = [_formattedYear, _format.s1, _formattedMonth,
           _format.s2, _formattedDate].join('');
-        // TODO: showLongDate.
+        // show long date (eg. Fri, May 12 2017 instead.
         if (this.showLongDate) {
-          // var _dayNumber = new Date(_selectedYear, _selectedMonth, _selectedDate).getDay();
-          // _finalFormatted = _dayNames[_dayNumber].slice(0, 3) + ', ' + _finalFormatted;
+          var _longDate = new Date(_finalFormatted).toString().slice(0, 15);
+          _finalFormatted = _longDate.slice(0, 3) + ',' + _longDate.slice(3);
         }
         this.set('date', _finalFormatted);
       },
@@ -876,6 +872,17 @@ device device device  fcal   fcal   lr  tb yr date fdate  fdate nav   nav    nav
           this._bindSelectedFulldate(this._selectedYear, this._selectedMonth,
             this._selectedDate, this._format);
           this.set('_isSelectedDateConfirmed', false);
+        }
+      },
+      // Update date to show long date or short date.
+      _computeShowLongDate: function(_showLongDate) {
+        if (_showLongDate) {
+          var _longDate = new Date(this.date).toString().slice(0, 15);
+          this.set('date', _longDate.slice(0,3) + ',' + _longDate.slice(3));
+        }else {
+          var _shortDate = new Date(this.date);
+          this.set('date', [_shortDate.getFullYear(),
+            ('0' + (_shortDate.getMonth() + 1)).slice(-2), _shortDate.getDate()].join('-'));
         }
       },
 

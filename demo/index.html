@@ -16,12 +16,14 @@
     <link rel="import" href="../../iron-selector/iron-selector.html">
     <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
     <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+    <link rel="import" href="../../iron-label/iron-label.html">
 
     <link rel="import" href="../../paper-styles/paper-styles.html">
     <link rel="import" href="../../paper-input/paper-input.html">
     <link rel="import" href="../../paper-button/paper-button.html">
     <link rel="import" href="../../paper-icon-button/paper-icon-button.html">
     <link rel="import" href="../../paper-dialog/paper-dialog.html">
+    <link rel="import" href="../../paper-checkbox/paper-checkbox.html">
 
     <style is="custom-style" include="demo-pages-shared-styles">
       body {
@@ -54,6 +56,7 @@
       div.choose-date-format-year,
       div.choose-date-format-month,
       div.choose-date-format-day,
+      div.show-long-date,
       div.datepicker-dialog {
         height: 64px;
         font-size: 12px;
@@ -110,6 +113,24 @@
         color: #fff;
       }
 
+      /* div.show-long-date */
+      div.show-long-date {
+        font-weight: 500;
+      }
+      div.show-long-date > iron-label {
+        text-align: left;
+      }
+      iron-label > div {
+        color: #9e9e9e;
+        font-size: 12px;
+        font-style: italic;
+      }
+      div.show-long-date > paper-checkbox {
+        --paper-checkbox-checked-color: #009688;
+        --paper-checkbox-checked-ink-color: #009688;
+        --paper-checkbox-unchecked-ink-color: #009688;
+      }
+
       /* paper-input */
       paper-input {
         --paper-input-container-focus-color: #009688;
@@ -143,7 +164,7 @@
      }
 
      /* media queries */
-     @media all and (max-width: 899px) {
+     @media all and (max-width: 959px) {
        body {
          padding: 0;
        }
@@ -152,7 +173,7 @@
          margin-right: 0;
        }
      }
-     @media all and (min-width: 899px) {
+     @media all and (min-width: 960px) {
        /* when it's on tablet or larger screen split into 2 columns */
        div.vertical-section-container {
          @apply(--layout-horizontal);
@@ -226,12 +247,27 @@
               </iron-selector>
             </div>
           </div>
+          <div class="show-long-date">
+            <iron-label for="showLongDate" class="flex">
+              Show long date
+              <div class="">
+                (eg. Fri, May 12 2017)
+              </div>
+            </iron-label>
+            <paper-checkbox id="showLongDate" checked="{{showLongDate}}"></paper-checkbox>
+          </div>
         </div>
 
+        <!-- 287 jv-datepicker -->
+        <!-- 292 jv-datepicker-dialog -->
+
+        <!-- 151 shell -->
+        <!-- 82 datepicker -->
+        <!-- 86 datepicker dialog -->
         <div class="vertical-section">
           <h4>Datepicker</h4>
           <div class="datepicker">
-            <compound-datepicker first-day-of-week="[[firstDayOfWeek]]" disable-days="[[disableDays]]" min-date="[[minDate]]" max-date="[[maxDate]]" format="[[format]]" date="{{selectedDate}}" on-date-changed="_onDateChanged">
+            <compound-datepicker first-day-of-week="[[firstDayOfWeek]]" disable-days="[[disableDays]]" min-date="[[minDate]]" max-date="[[maxDate]]" format="[[format]]" date="{{selectedDate}}" on-date-changed="_onDateChanged" show-long-date="[[showLongDate]]">
             </compound-datepicker>
           </div>
           <h4>Datepicker dialog</h4>
@@ -254,7 +290,7 @@
       var _months = ['mmmm', 'mmm', 'mm', 'm'];
       var _days = ['do', 'dd', 'd'];
 
-      demo.showDayName = true;
+      demo.showLongDate = true;
       demo.yearFormat = 0;
       demo.monthFormat = 2;
       demo.dayFormat = 1;
@@ -281,24 +317,22 @@
         }
       };
 
-      demo.onIronItemsChanged = function() {
-        var _format = [_years[demo.yearFormat], _months[demo.monthFormat], _days[demo.dayFormat]].join('-');
-        demo.format = _format;
-
-        console.log(demo.disableDays);
-        console.log(demo.format);
-      };
-
-      demo._onChange = function() {
-        console.log(demo.minDate, demo.maxDate);
-      };
-
       demo._openDialog = function(ev) {
         this.$.datepicker.open();
       };
 
+      demo.onIronItemsChanged = function() {
+        var _format = [_years[demo.yearFormat], _months[demo.monthFormat], _days[demo.dayFormat]].join('-');
+        demo.format = _format;
+        // console.log(demo.disableDays);
+        // console.log(demo.format);
+      };
+      demo._onChange = function() {
+        // console.log(demo.minDate, demo.maxDate);
+      };
+
       demo._onDateChanged = function(ev, de) {
-        console.log(de.value);
+        // console.log(de.value);
       };
     </script>
 
