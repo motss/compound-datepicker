@@ -1,14 +1,16 @@
 {
   "name": "compound-datepicker",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "authors": [
-    "Anonymous <anonymous@example.com>"
+    "motss <wes_ngrongsen@hotmail.com>"
   ],
-  "description": "An element providing a solution to no problem in particular.",
+  "description": "Material Design Datepicker for Polymer.",
   "keywords": [
     "web-component",
     "polymer",
-    "seed"
+    "datepicker",
+    "compound-datepicker",
+    "motss"
   ],
   "main": "compound-datepicker.html",
   "license": "http://polymer.github.io/LICENSE.txt",
